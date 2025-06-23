@@ -1,0 +1,22 @@
+{
+  "name": "spikechat-system",
+  "version": "1.0.0",
+  "description": "Sistema de chat em tempo real com integração Rocket.Chat",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm start",
+    "server:install": "cd server && npm install",
+    "client:install": "cd client && npm install",
+    "install:all": "npm run server:install && npm run client:install",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "keywords": ["chat", "socket.io", "react", "rocket.chat"],
+  "author": "SpikeChat Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
