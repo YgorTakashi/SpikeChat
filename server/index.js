@@ -121,6 +121,57 @@ class RocketChatService {
     }
   }
 
+  // Registrar usuário no Rocket.Chat
+  async registerUser(username, name, email, password) {
+    try {
+      const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/users.create`;
+      const response = await axios.post(
+          url, 
+          {
+            username,
+            name,
+            email,
+            password,
+          }, 
+          {
+            headers: ROCKET_CHAT_CONFIG.headers
+          }
+        )
+
+      console.log('Response success:', response.data.success);
+      console.log(`Usuário ${username} registrado com sucesso`);
+      return response;
+    } catch (error) {
+      console.error('Erro ao registrar usuário: ', error.response?.data || error.message);
+      throw error;
+      
+    }
+  }
+
+  async loginUser(username, password) {
+    try {
+      const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/login`;
+
+      if (!username || !password) {
+        throw new Error('Username e password são obrigatórios para login');
+      }
+
+      const response = await axios.post(url, {
+        username,
+        password
+      });
+      if (response.status !== 200 || !response.data) {
+        throw new Error('Login falhou, dados inválidos retornados');
+      }
+      console.log(`Usuário ${username} logado com sucesso`);
+      return response;
+
+    } catch (error) {
+      console.error('Erro ao fazer login:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
   // Iniciar polling para novas mensagens
   startPolling(io) {
     if (this.isPolling) return;
@@ -240,6 +291,57 @@ app.post('/api/messages', async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, name, email, password } = req.body;
+
+    if (!username || !name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Todos os campos são obrigatórios'
+      });
+    }
+    const user = await rocketChatService.registerUser(
+      username,
+      name,
+      email,
+      password
+    )
+
+    if(!user) {
+      return res.status(400).json({
+        success: false,
+        error: 'Erro ao registrar usuário'
+      });
+    }
+
+    console.log(user)
+
+    const dataTokens = await rocketChatService.loginUser(username, password);
+    if (!dataTokens) {
+      return res.status(400).json({
+        success: false,
+        error: 'Erro ao fazer login após registro, tente fazer login manualmente'
+      });
+    }
+    console.log(dataTokens)
+
+    res.json({
+      success: true,
+      data: {
+        authToken: dataTokens.data.authToken,
+        userId: dataTokens.data.userId,
+      }
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+    
   }
 });
 
