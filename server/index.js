@@ -157,15 +157,13 @@ class RocketChatService {
       }
 
       const response = await axios.post(url, {
-        username,
-        password
-      });
-      if (response.status !== 200 || !response.data) {
-        throw new Error('Login falhou, dados inválidos retornados');
-      }
+            email: username,
+            password
+          },
+        );
+
       console.log(`Usuário ${username} logado com sucesso`);
       return response;
-
     } catch (error) {
       console.error('Erro ao fazer login:', error.response?.data || error.message);
       throw error;
@@ -318,7 +316,6 @@ app.post('/api/register', async (req, res) => {
       });
     }
 
-    console.log(user)
 
     const dataTokens = await rocketChatService.loginUser(username, password);
     if (!dataTokens) {
@@ -332,8 +329,8 @@ app.post('/api/register', async (req, res) => {
     res.json({
       success: true,
       data: {
-        authToken: dataTokens.data.authToken,
-        userId: dataTokens.data.userId,
+        authToken:dataTokens.data.data.authToken,
+        userId: dataTokens.data.data.userId,
       }
     })
   } catch (error) {
@@ -344,6 +341,39 @@ app.post('/api/register', async (req, res) => {
     
   }
 });
+
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, email,password } = req.body;
+    console.log(req.body)
+    if ((!username && !email) || !password) {
+      throw new Error('E-mail e password são obrigatórios para login');
+    }
+    const dataTokens = await rocketChatService.loginUser(username ?? email, password);
+    if (!dataTokens) {
+      return res.status(400).json({
+        success: false,
+        error: 'Erro ao fazer login, verifique suas credenciais'
+      });
+    }
+
+    console.log(dataTokens.data.data)
+    res.json({
+      success: true,
+      data: {
+        authToken: dataTokens.data.data.authToken,
+        userId: dataTokens.data.data.userId,
+      }
+    });
+  } catch (error) {
+    console.error('Erro no login:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 
 // Gerenciamento de conexões Socket.IO
 io.on('connection', (socket) => {

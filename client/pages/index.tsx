@@ -1,8 +1,20 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
+import { useAuth } from '../contexts/AuthContext'
 
 const IndexPage: React.FC = () => {
   const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuth()
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (isAuthenticated) {
+        router.push('/chat')
+      } else {
+        router.push('/login')
+      }
+    }
+  }, [isAuthenticated, isLoading, router])
 
   return (
     <div style={{ 
@@ -12,7 +24,7 @@ const IndexPage: React.FC = () => {
       height: '100vh',
       fontFamily: 'Arial, sans-serif'
     }}>
-      <p>Redirecionando para o chat...</p>
+      <p>Redirecionando...</p>
     </div>
   )
 }

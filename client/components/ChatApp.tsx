@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 import io, { Socket } from 'socket.io-client';
 import moment from 'moment';
+import { useAuth } from '../contexts/AuthContext';
 import { Message, VideoCallData } from '../types/chat';
 
 // Importação dinâmica do JitsiMeeting para evitar problemas de SSR
@@ -13,6 +15,9 @@ const JitsiMeeting = dynamic(
 const SOCKET_SERVER_URL = 'http://localhost:3001';
 
 const ChatApp: React.FC = () => {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  
   // Estados do componente
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState<boolean>(false);
@@ -273,6 +278,15 @@ const ChatApp: React.FC = () => {
     return false; // Todas as mensagens serão exibidas como de outros usuários por enquanto
   };
 
+  // Função para logout
+  const handleLogout = (): void => {
+    if (socket) {
+      socket.disconnect();
+    }
+    logout();
+    router.push('/login');
+  };
+
   // Renderização do status de conexão
   const renderConnectionStatus = (): React.ReactElement => {
     if (connected) {
@@ -304,6 +318,11 @@ const ChatApp: React.FC = () => {
           <div className="chat-status">
             Sala: {roomId} • {messages.length} mensagens
           </div>
+          {user && (
+            <div className="user-info">
+              Bem-vindo, {user.name}
+            </div>
+          )}
         </div>
         
         <div className="header-right">
@@ -314,6 +333,13 @@ const ChatApp: React.FC = () => {
             title={isVideoCallActive ? 'Encerrar chamada de vídeo' : 'Iniciar chamada de vídeo'}
           >
             {isVideoCallActive ? '📹 Encerrar Chamada' : '📹 Chamada de Vídeo'}
+          </button>
+          <button
+            className="logout-button"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            🚪 Sair
           </button>
         </div>
       </div>
@@ -402,8 +428,8 @@ const ChatApp: React.FC = () => {
                     ]
                   }}
                   userInfo={{
-                    displayName: `Usuário-${roomId}`,
-                    email: `usuario-${roomId}@spikechat.local`
+                    displayName: user?.name || `Usuário-${roomId}`,
+                    email: user?.email || `usuario-${roomId}@spikechat.local`
                   }}
                   onApiReady={(externalApi: any) => {
                     console.log('Jitsi API pronta:', externalApi);
