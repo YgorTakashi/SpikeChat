@@ -15,8 +15,14 @@ const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState('');
 
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  if(isAuthenticated){
+    // Se o usuário já estiver autenticado, redirecionar para a página de chat
+    router.push('/chat');
+    return null; // Retornar null para não renderizar o formulário
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

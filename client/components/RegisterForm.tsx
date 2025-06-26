@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +17,7 @@ const RegisterForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState('');
 
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,12 +79,13 @@ const RegisterForm: React.FC = () => {
 
     try {
       // Simular chamada de API (substitua pela sua API real)
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('http://localhost:3001/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          username: formData.email.split('@')[0],
           name: formData.name,
           email: formData.email,
           password: formData.password,
@@ -97,28 +98,29 @@ const RegisterForm: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log('Dados do registro:', data);
 
-      if (data.success && data.user && data.token) {
-        login(data.user, data.token);
+      if (data.data.userId && data.data.authToken) {
+        login(data.data.userId,  data.data.authToken);
         router.push('/chat');
       } else {
         setServerError(data.message || 'Erro no registro');
       }
     } catch (error) {
       console.error('Erro no registro:', error);
-      // Para demonstração, vamos simular um registro bem-sucedido
-      const mockUser = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        username: formData.email.split('@')[0],
-      };
-      login(mockUser, 'mock-token-' + Date.now());
-      router.push('/chat');
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Limpar erros do servidor ao desmontar o componente
+    logout();
+    return () => {
+      setServerError('');
+      setErrors({});
+    };
+  }, [logout]);
 
   return (
     <div className="auth-container">

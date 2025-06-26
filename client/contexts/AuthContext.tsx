@@ -24,48 +24,60 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Verificar se há um usuário logado no localStorage
-    const checkAuth = () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        const userData = localStorage.getItem('userId');
+  // Função para obter o usuário do localStorage
+  const getUser = (): AuthUser | null => {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('userId');
 
-        if (token && userData) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-        }
-      } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
-        // Limpar dados corrompidos
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userId');
-      } finally {
-        setIsLoading(false);
+      if (token && userData) {
+        return JSON.parse(userData);
       }
-    };
+      return null;
+    } catch (error) {
+      console.error('Erro ao verificar autenticação:', error);
+      // Limpar dados corrompidos
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+      return null;
+    }
+  };
 
-    checkAuth();
+  // Função para verificar se está autenticado
+  const getIsAuthenticated = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    
+    const token = localStorage.getItem('authToken');
+    const userData = localStorage.getItem('userId');
+    return !!(token && userData);
+  };
+
+  useEffect(() => {
+    // Apenas definir isLoading como false após verificar localStorage
+    setIsLoading(false);
   }, []);
 
   const login = (userData: AuthUser, token: string) => {
-    setUser(userData);
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userId', JSON.stringify(userData));
+    }
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userId');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+    }
   };
 
   const value: AuthContextType = {
-    user,
-    isAuthenticated: !!user,
+    user: getUser(),
+    isAuthenticated: getIsAuthenticated(),
     login,
     logout,
     isLoading,

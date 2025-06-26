@@ -345,7 +345,7 @@ app.post('/api/register', async (req, res) => {
     }
 
 
-    const dataTokens = await rocketChatService.loginUser(username, password);
+    const dataTokens = await rocketChatService.loginUser(email, password);
     if (!dataTokens) {
       return res.status(400).json({
         success: false,
