@@ -35,9 +35,10 @@ class RocketChatService {
     this.lastTimestamp = Date.now();
     this.isPolling = false;
     this.initialLoad = true;
+    this.activePollings = new Map(); // Mapa para controlar polling por sala
   }
   // Buscar mensagens do Rocket.Chat
-  async getMessages(roomId = process.env.DEFAULT_ROOM_ID, previous = null) {
+  async getMessages(roomId, previous = null) {
     try {
       const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/chat.syncMessages`;
       const searchTimestamp = previous || (Date.now() - (24 * 60 * 60 * 1000)); // 24 horas atrás por padrão
@@ -193,44 +194,91 @@ class RocketChatService {
     }
   }
 
-  // Iniciar polling para novas mensagens
-  startPolling(io) {
-    if (this.isPolling) return;
+  // Iniciar polling para novas mensagens em uma sala específica
+  startPolling(io, roomId) {
+    if (!roomId) {
+      console.log('RoomId é obrigatório para iniciar polling');
+      return;
+    }
+
+    // Verificar se já existe polling para esta sala
+    if (this.activePollings.has(roomId)) {
+      console.log(`Polling já ativo para a sala: ${roomId}`);
+      return;
+    }
     
-    this.isPolling = true;
-    console.log('Iniciando polling para novas mensagens...');    const poll = async () => {
+    console.log(`Iniciando polling para sala: ${roomId}`);
+    
+    const roomPollingData = {
+      lastTimestamp: Date.now(),
+      initialLoad: true,
+      intervalId: null
+    };
+
+    const poll = async () => {
       try {
-        const messages = await this.getMessages();
+        const messages = await this.getMessages(roomId, roomPollingData.lastTimestamp);
         
         if (messages.length > 0) {
-          console.log(`Encontradas ${messages.length} novas mensagens`);
+          console.log(`Encontradas ${messages.length} novas mensagens na sala ${roomId}`);
           
-          // Emitir mensagens para todos os clientes conectados
+          // Emitir mensagens para clientes conectados na sala específica
           messages.forEach(message => {
-            io.emit('new_message', this.formatMessage(message));
+            io.to(roomId).emit('new_message', this.formatMessage(message));
           });
           
           // Atualizar timestamp apenas se não for o carregamento inicial
-          if (!this.initialLoad) {
+          if (!roomPollingData.initialLoad) {
             const latestMessage = messages[messages.length - 1];
             if (latestMessage._updatedAt) {
-              this.lastTimestamp = new Date(latestMessage._updatedAt).getTime();
+              roomPollingData.lastTimestamp = new Date(latestMessage._updatedAt).getTime();
             }
           } else {
             // Após o primeiro carregamento, usar timestamp atual
-            this.initialLoad = false;
-            this.lastTimestamp = Date.now();
+            roomPollingData.initialLoad = false;
+            roomPollingData.lastTimestamp = Date.now();
           }
         }
       } catch (error) {
-        console.error('Erro no polling:', error.message);
+        console.error(`Erro no polling da sala ${roomId}:`, error.message);
       }
 
-      // Agendar próximo polling
-      setTimeout(poll, parseInt(process.env.POLLING_INTERVAL) || 2000);
+      // Agendar próximo polling se ainda estiver ativo
+      if (this.activePollings.has(roomId)) {
+        roomPollingData.intervalId = setTimeout(poll, parseInt(process.env.POLLING_INTERVAL) || 2000);
+      }
     };
 
+    // Armazenar informações do polling
+    this.activePollings.set(roomId, roomPollingData);
+    
+    // Iniciar polling
     poll();
+  }
+
+  // Parar polling para uma sala específica
+  stopPolling(roomId) {
+    if (!roomId) return;
+    
+    const pollingData = this.activePollings.get(roomId);
+    if (pollingData) {
+      if (pollingData.intervalId) {
+        clearTimeout(pollingData.intervalId);
+      }
+      this.activePollings.delete(roomId);
+      console.log(`Polling parado para sala: ${roomId}`);
+    }
+  }
+
+  // Parar todos os pollings
+  stopAllPolling() {
+    for (const [roomId, pollingData] of this.activePollings) {
+      if (pollingData.intervalId) {
+        clearTimeout(pollingData.intervalId);
+      }
+    }
+    this.activePollings.clear();
+    console.log('Todos os pollings foram parados');
   }
 
   // Formatar mensagem para o frontend
@@ -261,7 +309,7 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/messages/:roomId?', async (req, res) => {
   try {
-    const roomId = req.params.roomId || process.env.DEFAULT_ROOM_ID;
+    const roomId = req.params.roomId ;
     const previous = req.query.previous;
     
     // Se não há previous, buscar mensagens das últimas 24 horas
@@ -511,8 +559,27 @@ io.on('connection', (socket) => {
 
   // Entrar em uma sala específica
   socket.on('join_room', (roomId) => {
-    socket.join(roomId || process.env.DEFAULT_ROOM_ID);
-    console.log(`Cliente ${socket.id} entrou na sala: ${roomId}`);
+    const effectiveRoomId = roomId || process.env.DEFAULT_ROOM_ID;
+    socket.join(effectiveRoomId);
+    console.log(`Cliente ${socket.id} entrou na sala: ${effectiveRoomId}`);
+    
+    // Iniciar polling para esta sala se não estiver ativo
+    rocketChatService.startPolling(io, effectiveRoomId);
+  });
+
+  // Sair de uma sala específica
+  socket.on('leave_room', (roomId) => {
+    if (roomId) {
+      socket.leave(roomId);
+      console.log(`Cliente ${socket.id} saiu da sala: ${roomId}`);
+      
+      // Verificar se ainda há clientes na sala
+      const room = io.sockets.adapter.rooms.get(roomId);
+      if (!room || room.size === 0) {
+        // Parar polling se não há mais clientes na sala
+        rocketChatService.stopPolling(roomId);
+      }
+    }
   });
 
   // Enviar mensagem via socket
@@ -552,11 +619,21 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`Cliente desconectado: ${socket.id}`);
+    
+    // Verificar todas as salas e parar polling se necessário
+    setTimeout(() => {
+      for (const [roomId] of rocketChatService.activePollings) {
+        const room = io.sockets.adapter.rooms.get(roomId);
+        if (!room || room.size === 0) {
+          rocketChatService.stopPolling(roomId);
+        }
+      }
+    }, 1000); // Delay para garantir que a desconexão foi processada
   });
 });
 
-// Iniciar o polling quando o servidor iniciar
-rocketChatService.startPolling(io);
+// Não iniciar polling global - será iniciado por sala conforme necessário
+// rocketChatService.startPolling(io);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {

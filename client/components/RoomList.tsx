@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import { Room, User } from "../types/chat";
 import { useRoom } from "../contexts/RoomContext";
-import { useAuth } from "contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 const RoomList = () => {
   const { currentRoomId, setCurrentRoom } = useRoom();
+  const { user: loggedUser } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [newRoomName, setNewRoomName] = useState<string>('');
-  const {user: loggedUser} = useAuth()
 
   useEffect(() => {
     // Simulação de carregamento de salas

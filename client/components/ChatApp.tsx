@@ -29,6 +29,7 @@ const ChatApp: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [previousRoomId, setPreviousRoomId] = useState<string | null>(null);
 
   // Estados para chamada de vídeo
   const [isVideoCallActive, setIsVideoCallActive] = useState<boolean>(false);
@@ -62,10 +63,17 @@ const ChatApp: React.FC = () => {
         socket.disconnect();
         setSocket(null);
       }
+      setPreviousRoomId(null);
       return;
     }
     
-    console.log('Conectando ao servidor Socket.IO...');
+    // Se já há um socket conectado, sair da sala anterior
+    if (socket && previousRoomId) {
+      socket.emit('leave_room', previousRoomId);
+      socket.disconnect();
+    }
+    
+    console.log(`Conectando ao servidor Socket.IO para sala: ${currentRoomId}...`);
     const newSocket = io(SOCKET_SERVER_URL, {
       transports: ['websocket', 'polling'],
     });
@@ -158,10 +166,14 @@ const ChatApp: React.FC = () => {
     });
 
     setSocket(newSocket);
+    setPreviousRoomId(currentRoomId);
 
     // Cleanup
     return () => {
       console.log('Desconectando do Socket.IO...');
+      if (currentRoomId) {
+        newSocket.emit('leave_room', currentRoomId);
+      }
       newSocket.close();
     };
   }, [currentRoomId]);
