@@ -24,7 +24,7 @@ const LoginForm: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    
+
     // Limpar erro específico do campo quando o usuário começar a digitar
     if (errors[name as keyof LoginFormData]) {
       setErrors(prev => ({
@@ -81,9 +81,9 @@ const LoginForm: React.FC = () => {
       const data = await response.json();
 
       console.log('Dados do login:', data);
-      
+
       if (data.success && data.data.userId && data.data.authToken) {
-        login(data.data.userId , data.data.authToken);
+        login(data.data.userId, data.data.authToken);
         router.push('/chat');
       } else {
         setServerError(data.message || 'Erro no login');
@@ -91,7 +91,10 @@ const LoginForm: React.FC = () => {
     } catch (error) {
       console.error('Erro no login:', error);
       // Para demonstração, vamos simular um login bem-sucedido
-      if (formData.email === 'demo@spikechat.com' && formData.password === '123456') {
+      if (
+        formData.email === 'demo@spikechat.com' &&
+        formData.password === '123456'
+      ) {
         const mockUser = {
           id: '1',
           name: 'Usuário Demo',
@@ -118,9 +121,7 @@ const LoginForm: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="auth-form">
           {serverError && (
-            <div className="error-message server-error">
-              {serverError}
-            </div>
+            <div className="error-message server-error">{serverError}</div>
           )}
 
           <div className="form-group">
@@ -150,14 +151,12 @@ const LoginForm: React.FC = () => {
               placeholder="Sua senha"
               autoComplete="current-password"
             />
-            {errors.password && <span className="error-text">{errors.password}</span>}
+            {errors.password && (
+              <span className="error-text">{errors.password}</span>
+            )}
           </div>
 
-          <button
-            type="submit"
-            className="auth-button"
-            disabled={isLoading}
-          >
+          <button type="submit" className="auth-button" disabled={isLoading}>
             {isLoading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
@@ -172,7 +171,9 @@ const LoginForm: React.FC = () => {
         </div>
 
         <div className="demo-info">
-          <p><strong>Demo:</strong></p>
+          <p>
+            <strong>Demo:</strong>
+          </p>
           <p>Email: demo@spikechat.com</p>
           <p>Senha: 123456</p>
         </div>

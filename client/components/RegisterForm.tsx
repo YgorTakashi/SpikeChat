@@ -26,7 +26,7 @@ const RegisterForm: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    
+
     // Limpar erro específico do campo quando o usuário começar a digitar
     if (errors[name as keyof RegisterFormData]) {
       setErrors(prev => ({
@@ -97,7 +97,7 @@ const RegisterForm: React.FC = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.user && data.token) {
         login(data.user, data.token);
         router.push('/chat');
@@ -130,9 +130,7 @@ const RegisterForm: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="auth-form">
           {serverError && (
-            <div className="error-message server-error">
-              {serverError}
-            </div>
+            <div className="error-message server-error">{serverError}</div>
           )}
 
           <div className="form-group">
@@ -177,7 +175,9 @@ const RegisterForm: React.FC = () => {
               placeholder="Crie uma senha segura"
               autoComplete="new-password"
             />
-            {errors.password && <span className="error-text">{errors.password}</span>}
+            {errors.password && (
+              <span className="error-text">{errors.password}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -192,14 +192,12 @@ const RegisterForm: React.FC = () => {
               placeholder="Confirme sua senha"
               autoComplete="new-password"
             />
-            {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
+            {errors.confirmPassword && (
+              <span className="error-text">{errors.confirmPassword}</span>
+            )}
           </div>
 
-          <button
-            type="submit"
-            className="auth-button"
-            disabled={isLoading}
-          >
+          <button type="submit" className="auth-button" disabled={isLoading}>
             {isLoading ? 'Criando conta...' : 'Criar Conta'}
           </button>
         </form>

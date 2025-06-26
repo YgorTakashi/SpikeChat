@@ -64,6 +64,7 @@ client/
 ## Configuração
 
 1. **Instale as dependências:**
+
    ```bash
    npm install
    ```
@@ -84,11 +85,13 @@ client/
 ## Desenvolvimento
 
 Este projeto usa TypeScript para tipagem estática, o que ajuda a:
+
 - Detectar erros em tempo de compilação
 - Melhorar a experiência de desenvolvimento com IntelliSense
 - Facilitar refatorações e manutenção do código
 
 Para adicionar novas funcionalidades:
+
 1. Defina os tipos necessários em `types/`
 2. Crie componentes em `components/` se necessário
 3. Adicione novas páginas em `pages/` seguindo a convenção do Next.js
@@ -98,6 +101,7 @@ Para adicionar novas funcionalidades:
 Para fazer deploy da aplicação:
 
 1. **Build da aplicação:**
+
    ```bash
    npm run build
    ```
@@ -108,6 +112,7 @@ Para fazer deploy da aplicação:
    ```
 
 O Next.js otimiza automaticamente a aplicação para produção, incluindo:
+
 - Code splitting automático
 - Otimização de imagens
 - Minificação de CSS e JavaScript

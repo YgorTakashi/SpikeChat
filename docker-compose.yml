@@ -4,6 +4,7 @@ volumes:
 services:
   rocketchat:
     image: ${IMAGE:-registry.rocket.chat/rocketchat/rocket.chat}:${RELEASE:-latest}
+    platform: linux/amd64
     restart: always
     labels:
       traefik.enable: "true"
@@ -27,6 +28,7 @@ services:
 
   mongodb:
     image: docker.io/bitnami/mongodb:${MONGODB_VERSION:-6.0}
+    platform: linux/amd64
     restart: always
     volumes:
       - ${MONGODB_HOST_PATH:-mongodb_data}:/bitnami/mongodb
@@ -39,3 +41,4 @@ services:
       MONGODB_ADVERTISED_HOSTNAME: ${MONGODB_ADVERTISED_HOSTNAME:-mongodb}
       MONGODB_ENABLE_JOURNAL: ${MONGODB_ENABLE_JOURNAL:-true}
       ALLOW_EMPTY_PASSWORD: ${ALLOW_EMPTY_PASSWORD:-yes}
+      EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU: 1
