@@ -340,6 +340,56 @@ app.get('/api/list-users', async (req, res) => {
   }
 });
 
+app.post('/api/create-dm', async (req, res) => {
+  try {
+    const { username, authToken, userId } = req.body;
+    console.log(req.body)
+    
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username é obrigatório para criar DM'
+      });
+    }
+
+    if (!authToken || !userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'AuthToken e UserId são obrigatórios para criar DM'
+      });
+    }
+
+    const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/dm.create`;
+    const response = await axios.post(url, {
+      username: username,
+      excludeSelf: false
+    }, {
+      headers: {
+        'x-Auth-Token': authToken,
+        'x-User-Id': userId
+      }
+    });
+    
+    if (response.data.success) {
+      res.json({
+        success: true,
+        room: response.data.room
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Erro ao criar DM'
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao criar DM:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.post('/api/messages', async (req, res) => {
   try {
     const { message, roomId, alias, emoji, avatar, attachments } = req.body;

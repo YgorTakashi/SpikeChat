@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Room, User } from "../types/chat";
 import { useRoom } from "../contexts/RoomContext";
+import { useAuth } from "contexts/AuthContext";
 
 const RoomList = () => {
   const { currentRoomId, setCurrentRoom } = useRoom();
@@ -10,6 +11,7 @@ const RoomList = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [newRoomName, setNewRoomName] = useState<string>('');
+  const {user: loggedUser} = useAuth()
 
   useEffect(() => {
     // Simulação de carregamento de salas
@@ -69,12 +71,33 @@ const RoomList = () => {
     setCurrentRoom(room._id, room.name);
   };
 
-  const handleUserSelect = (user: User) => {
-    // Criar ou entrar em uma sala de DM com o usuário selecionado
-    // O ID da sala de DM geralmente é uma combinação dos IDs dos usuários
-    const dmRoomId = `dm-${user._id}`;
-    setCurrentRoom(dmRoomId, `DM com ${user.name}`);
-    setIsModalOpen(false);
+  const handleUserSelect = async(user: User) => {
+    try {
+      // Criar ou entrar em uma sala de DM com o usuário selecionado
+      const response = await fetch('http://localhost:3001/api/create-dm', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          username: user.username,
+          authToken: loggedUser?.token,
+          userId: loggedUser?.id, // Passando o ID do usuário autenticado
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Erro ao criar DM');
+      }
+      const data = await response.json();
+      console.log('DM criada:', data);
+      
+      // Atualizar a lista de salas com a nova DM
+      setRooms(prev => [...prev, data.room]);
+      setCurrentRoom(data.room._id, user.username);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Erro ao selecionar usuário:', error);
+    }
   };
 
   const handleCreateRoom = async () => {
