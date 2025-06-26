@@ -24,7 +24,7 @@ const ChatApp: React.FC = () => {
   const [connected, setConnected] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState<string>('');
-  const [roomId] = useState<string>('GENERAL');
+  const [roomId] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
@@ -53,6 +53,10 @@ const ChatApp: React.FC = () => {
 
   // Configuração do Socket.IO
   useEffect(() => {
+    if (!roomId) {
+      console.error('ID da sala não fornecido');
+      return;
+    }
     console.log('Conectando ao servidor Socket.IO...');
     const newSocket = io(SOCKET_SERVER_URL, {
       transports: ['websocket', 'polling'],

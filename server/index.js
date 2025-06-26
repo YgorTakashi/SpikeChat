@@ -260,6 +260,34 @@ app.get('/api/messages/:roomId?', async (req, res) => {
   }
 });
 
+app.get('/api/list-rooms', async (req, res) => {
+  console.log('Listando salas...');
+  try {
+    const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/channels.list.joined`;
+    const response = await axios.get(url, {
+      headers: ROCKET_CHAT_CONFIG.headers
+    });
+
+    if (response.data.success) {
+      res.json({
+        success: true,
+        rooms: response.data.channels
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Erro ao listar salas'
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao listar salas:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.post('/api/messages', async (req, res) => {
   try {
     const { message, roomId, alias, emoji, avatar, attachments } = req.body;

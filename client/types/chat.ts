@@ -3,6 +3,26 @@ export interface User {
   username: string;
 }
 
+export interface RoomUser {
+  _id: string;
+  username: string;
+  name: string;
+}
+
+export interface Room {
+  _id: string;
+  ts: string;
+  t: string;
+  name: string;
+  usernames: string[];
+  msgs: number;
+  usersCount: number;
+  _updatedAt: string;
+  u: RoomUser;
+  default?: boolean;
+  rolePrioritiesCreated?: number;
+}
+
 export interface MessageAttachment {
   title?: string;
   title_link?: string;
