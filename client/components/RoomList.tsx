@@ -150,7 +150,7 @@ const RoomList = () => {
                 onClick={() => handleRoomSelect(room)}
               >
                 <div className="flex flex-col">
-                  <span className="font-medium text-gray-800">{room.name}</span>
+                  <span className="font-medium text-gray-800">{room.name ?? room.usernames.join(', ')}</span>
                   <span className="text-xs text-gray-600">
                     {room.usersCount} usuário{room.usersCount !== 1 ? 's' : ''}
                   </span>

@@ -334,7 +334,7 @@ app.get('/api/messages/:roomId?', async (req, res) => {
 app.get('/api/list-rooms', async (req, res) => {
   console.log('Listando salas...');
   try {
-    const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/channels.list.joined`;
+    const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/rooms.get`;
     const response = await axios.get(url, {
       headers: ROCKET_CHAT_CONFIG.headers
     });
@@ -342,7 +342,7 @@ app.get('/api/list-rooms', async (req, res) => {
     if (response.data.success) {
       res.json({
         success: true,
-        rooms: response.data.channels
+        rooms: response.data.update
       });
     } else {
       res.status(400).json({
