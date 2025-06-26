@@ -35,8 +35,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userData = localStorage.getItem('userId');
 
       if (token && userData) {
+        const parsedUserData = JSON.parse(userData);
         return {
-          id: userData,
+          id: parsedUserData.id,
           token: token,
         }
       }

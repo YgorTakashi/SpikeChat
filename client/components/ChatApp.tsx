@@ -180,12 +180,14 @@ const ChatApp: React.FC = () => {
     try {
       // Enviar via Socket.IO
       if (socket) {
-        socket.emit('send_message', {
+        const messageData = {
           message: newMessage.trim(),
           roomId: currentRoomId,
           userId: user?.id,
           authToken: user?.token
-        });
+        };
+        console.log('Enviando mensagem com dados:', messageData);
+        socket.emit('send_message', messageData);
       }
 
       // Limpar input

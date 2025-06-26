@@ -101,7 +101,11 @@ const RegisterForm: React.FC = () => {
       console.log('Dados do registro:', data);
 
       if (data.data.userId && data.data.authToken) {
-        login(data.data.userId,  data.data.authToken);
+        const userData = {
+          id: data.data.userId,
+          token: data.data.authToken
+        };
+        login(userData, data.data.authToken);
         router.push('/chat');
       } else {
         setServerError(data.message || 'Erro no registro');

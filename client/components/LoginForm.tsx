@@ -89,7 +89,11 @@ const LoginForm: React.FC = () => {
       console.log('Dados do login:', data);
 
       if (data.success && data.data.userId && data.data.authToken) {
-        login(data.data.userId, data.data.authToken);
+        const userData = {
+          id: data.data.userId,
+          token: data.data.authToken
+        };
+        login(userData, data.data.authToken);
         router.push('/chat');
       } else {
         setServerError(data.message || 'Erro no login');
@@ -103,9 +107,7 @@ const LoginForm: React.FC = () => {
       ) {
         const mockUser = {
           id: '1',
-          name: 'Usuário Demo',
-          email: formData.email,
-          username: 'demo',
+          token: 'mock-token-123'
         };
         login(mockUser, 'mock-token-123');
         router.push('/chat');

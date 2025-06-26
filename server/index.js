@@ -77,6 +77,11 @@ class RocketChatService {
     try {
       const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/chat.sendMessage`;
       
+      // Verificar se authToken e userId estão presentes
+      if (!messageData.authToken || !messageData.userId) {
+        throw new Error('AuthToken e UserId são obrigatórios para enviar mensagens');
+      }
+      
       const message = {
         rid: messageData.roomId || process.env.DEFAULT_ROOM_ID,
         msg: messageData.message
@@ -114,7 +119,13 @@ class RocketChatService {
         headers: {
               'x-Auth-Token': messageData.authToken,
               'x-User-Id': messageData.userId,
+              'Content-Type': 'application/json'
             }
+      });
+
+      console.log('Headers enviados para Rocket.Chat:', {
+        'x-Auth-Token': messageData.authToken,
+        'x-User-Id': messageData.userId,
       });
 
       return response.data;
@@ -429,6 +440,8 @@ io.on('connection', (socket) => {
   socket.on('send_message', async (data) => {
     try {
       console.log('Mensagem recebida via socket:', data);
+      console.log('AuthToken recebido:', data.authToken);
+      console.log('UserId recebido:', data.userId);
       
       // Enviar para o Rocket.Chat
       await rocketChatService.sendMessage(data);
