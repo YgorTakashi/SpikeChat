@@ -111,7 +111,10 @@ class RocketChatService {
       const response = await axios.post(url, {
         message
       }, {
-        headers: ROCKET_CHAT_CONFIG.headers
+        headers: {
+              'x-Auth-Token': messageData.authToken,
+              'x-User-Id': messageData.userId,
+            }
       });
 
       return response.data;
@@ -163,6 +166,15 @@ class RocketChatService {
         );
 
       console.log(`Usuário ${username} logado com sucesso`);
+
+      const urlStatus = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/users.setStatus`;
+      await axios.post(urlStatus, {
+        status: 'online',
+        message: 'Estou online no SpikeChat!'
+      }, {
+        headers: ROCKET_CHAT_CONFIG.headers
+      });
+
       return response;
     } catch (error) {
       console.error('Erro ao fazer login:', error.response?.data || error.message);

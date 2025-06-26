@@ -35,7 +35,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userData = localStorage.getItem('userId');
 
       if (token && userData) {
-        return JSON.parse(userData);
+        return {
+          id: userData,
+          token: token,
+        }
       }
       return null;
     } catch (error) {
@@ -62,17 +65,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (userData: AuthUser, token: string) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('userId', JSON.stringify(userData));
-    }
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('userId', JSON.stringify(userData));
   };
 
   const logout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userId');
-    }
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
   };
 
   const value: AuthContextType = {

@@ -183,6 +183,8 @@ const ChatApp: React.FC = () => {
         socket.emit('send_message', {
           message: newMessage.trim(),
           roomId: currentRoomId,
+          userId: user?.id,
+          authToken: user?.token
         });
       }
 
@@ -354,7 +356,7 @@ const ChatApp: React.FC = () => {
           <div className="chat-status">
             Sala: {currentRoomName || 'Nenhuma sala selecionada'} • {messages.length} mensagens
           </div>
-          {user && <div className="user-info">Bem-vindo, {user.name}</div>}
+          {user && <div className="user-info">Bem-vindo</div>}
         </div>
 
         <div className="header-right">
@@ -488,9 +490,9 @@ const ChatApp: React.FC = () => {
                         ],
                       }}
                       userInfo={{
-                        displayName: user?.name || `Usuário-${currentRoomId}`,
+                        displayName:`Usuário-${currentRoomId}`,
                         email:
-                          user?.email || `usuario-${currentRoomId}@spikechat.local`,
+                          `usuario-${currentRoomId}@spikechat.local`,
                       }}
                       onApiReady={(externalApi: any) => {
                         console.log('Jitsi API pronta:', externalApi);
