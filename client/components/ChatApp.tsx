@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import io, { Socket } from 'socket.io-client';
 import moment from 'moment';
 import { useAuth } from '../contexts/AuthContext';
+import { useRoom } from '../contexts/RoomContext';
 import { Message, VideoCallData } from '../types/chat';
 import RoomList from './RoomList';
 
@@ -17,6 +18,7 @@ const SOCKET_SERVER_URL = 'http://localhost:3001';
 
 const ChatApp: React.FC = () => {
   const { user, logout } = useAuth();
+  const { currentRoomId, currentRoomName } = useRoom();
   const router = useRouter();
 
   // Estados do componente
@@ -24,7 +26,6 @@ const ChatApp: React.FC = () => {
   const [connected, setConnected] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState<string>('');
-  const [roomId] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
@@ -53,10 +54,17 @@ const ChatApp: React.FC = () => {
 
   // Configuração do Socket.IO
   useEffect(() => {
-    if (!roomId) {
-      console.error('ID da sala não fornecido');
+    if (!currentRoomId) {
+      console.log('Nenhuma sala selecionada');
+      setConnected(false);
+      setMessages([]);
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
       return;
     }
+    
     console.log('Conectando ao servidor Socket.IO...');
     const newSocket = io(SOCKET_SERVER_URL, {
       transports: ['websocket', 'polling'],
@@ -69,10 +77,10 @@ const ChatApp: React.FC = () => {
       setError('');
 
       // Entrar na sala
-      newSocket.emit('join_room', roomId);
+      newSocket.emit('join_room', currentRoomId);
 
       // Buscar histórico de mensagens
-      newSocket.emit('get_messages', { roomId });
+      newSocket.emit('get_messages', { roomId: currentRoomId });
     });
 
     newSocket.on('disconnect', () => {
@@ -156,7 +164,7 @@ const ChatApp: React.FC = () => {
       console.log('Desconectando do Socket.IO...');
       newSocket.close();
     };
-  }, [roomId]);
+  }, [currentRoomId]);
 
   // Função para enviar mensagem
   const sendMessage = async (
@@ -164,7 +172,7 @@ const ChatApp: React.FC = () => {
   ): Promise<void> => {
     e.preventDefault();
 
-    if (!newMessage.trim() || !connected) return;
+    if (!newMessage.trim() || !connected || !currentRoomId) return;
 
     setLoading(true);
     setError('');
@@ -174,7 +182,7 @@ const ChatApp: React.FC = () => {
       if (socket) {
         socket.emit('send_message', {
           message: newMessage.trim(),
-          roomId: roomId,
+          roomId: currentRoomId,
         });
       }
 
@@ -196,14 +204,14 @@ const ChatApp: React.FC = () => {
 
   // Funções para controlar chamada de vídeo
   const startVideoCall = (): void => {
-    const roomName = `spikechat-${roomId}-${Date.now()}`;
+    const roomName = `spikechat-${currentRoomId}-${Date.now()}`;
     setMeetingRoomName(roomName);
     setIsVideoCallActive(true);
 
     // Notificar outros usuários sobre a chamada
     if (socket) {
       socket.emit('video_call_started', {
-        roomId: roomId,
+        roomId: currentRoomId,
         meetingRoom: roomName,
         timestamp: new Date().toISOString(),
       });
@@ -227,7 +235,7 @@ const ChatApp: React.FC = () => {
     // Notificar outros usuários sobre o fim da chamada
     if (socket) {
       socket.emit('video_call_ended', {
-        roomId: roomId,
+        roomId: currentRoomId,
         meetingRoom: meetingRoomName,
         timestamp: new Date().toISOString(),
       });
@@ -327,7 +335,7 @@ const ChatApp: React.FC = () => {
   ): void => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (newMessage.trim() && connected && !loading) {
+      if (newMessage.trim() && connected && !loading && currentRoomId) {
         // Criar um evento sintético simples
         const syntheticEvent = {
           preventDefault: () => {},
@@ -344,7 +352,7 @@ const ChatApp: React.FC = () => {
         <div className="header-left">
           <h1 className="text-2xl font-semibold mb-0">💬 SpikeChat</h1>
           <div className="chat-status">
-            Sala: {roomId} • {messages.length} mensagens
+            Sala: {currentRoomName || 'Nenhuma sala selecionada'} • {messages.length} mensagens
           </div>
           {user && <div className="user-info">Bem-vindo, {user.name}</div>}
         </div>
@@ -353,7 +361,7 @@ const ChatApp: React.FC = () => {
           <button
             className={`video-call-button ${isVideoCallActive ? 'active' : ''} transition-all duration-300 hover:scale-105`}
             onClick={isVideoCallActive ? endVideoCall : startVideoCall}
-            disabled={!connected}
+            disabled={!connected || !currentRoomId}
             title={
               isVideoCallActive
                 ? 'Encerrar chamada de vídeo'
@@ -385,7 +393,14 @@ const ChatApp: React.FC = () => {
 
           {/* Lista de mensagens */}
           <div className="chat-messages scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-            {messages.length === 0 ? (
+            {!currentRoomId ? (
+              <div className="text-center text-gray-600 py-10 px-5">
+                <p className="text-2xl mb-2">👈 Selecione uma sala</p>
+                <p className="text-base">
+                  Escolha uma sala da lista ao lado para começar a conversar.
+                </p>
+              </div>
+            ) : messages.length === 0 ? (
               <div className="text-center text-gray-600 py-10 px-5">
                 <p className="text-2xl mb-2">🚀 Bem-vindo ao SpikeChat!</p>
                 <p className="text-base">
@@ -473,9 +488,9 @@ const ChatApp: React.FC = () => {
                         ],
                       }}
                       userInfo={{
-                        displayName: user?.name || `Usuário-${roomId}`,
+                        displayName: user?.name || `Usuário-${currentRoomId}`,
                         email:
-                          user?.email || `usuario-${roomId}@spikechat.local`,
+                          user?.email || `usuario-${currentRoomId}@spikechat.local`,
                       }}
                       onApiReady={(externalApi: any) => {
                         console.log('Jitsi API pronta:', externalApi);
@@ -505,16 +520,20 @@ const ChatApp: React.FC = () => {
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 placeholder={
-                  connected ? 'Digite sua mensagem...' : 'Conectando...'
+                  !currentRoomId 
+                    ? 'Selecione uma sala primeiro...'
+                    : connected 
+                    ? 'Digite sua mensagem...' 
+                    : 'Conectando...'
                 }
                 className="chat-input focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                disabled={!connected || loading}
+                disabled={!connected || loading || !currentRoomId}
                 onKeyPress={handleKeyPress}
               />
               <button
                 type="submit"
                 className="send-button shadow-lg hover:shadow-xl transition-all duration-200"
-                disabled={!connected || loading || !newMessage.trim()}
+                disabled={!connected || loading || !newMessage.trim() || !currentRoomId}
                 title="Enviar mensagem (Enter)"
               >
                 {loading ? '⏳' : '🚀'}
