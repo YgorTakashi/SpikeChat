@@ -1,6 +1,24 @@
-export interface User {
+export interface MessageUser {
   name: string;
   username: string;
+}
+
+export interface UserEmail {
+  address: string;
+  verified: boolean;
+}
+
+export interface User {
+  _id: string;
+  username: string;
+  emails: UserEmail[];
+  type: string;
+  roles: string[];
+  status: string;
+  active: boolean;
+  name: string;
+  lastLogin?: string;
+  nameInsensitive: string;
 }
 
 export interface RoomUser {
@@ -34,7 +52,7 @@ export interface MessageAttachment {
 export interface Message {
   id: string;
   text?: string;
-  user: User;
+  user: MessageUser;
   timestamp: string;
   type?: string;
   attachments?: MessageAttachment[];

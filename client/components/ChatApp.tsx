@@ -384,7 +384,7 @@ const ChatApp: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-row w-full h-full">
+      <div className="flex flex-row w-full h-[calc(100dvh-15dvh)]">
         <div className="sidebar w-64 bg-gray-100 border-r border-gray-200 p-4">
           <RoomList />
         </div>

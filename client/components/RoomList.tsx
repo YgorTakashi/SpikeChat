@@ -1,13 +1,14 @@
 
 "use client"
 import { useEffect, useState } from "react";
-import { Room } from "../types/chat";
+import { Room, User } from "../types/chat";
 import { useRoom } from "../contexts/RoomContext";
 
 const RoomList = () => {
   const { currentRoomId, setCurrentRoom } = useRoom();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [newRoomName, setNewRoomName] = useState<string>('');
 
   useEffect(() => {
@@ -43,8 +44,37 @@ const RoomList = () => {
     fetchRooms();
   }, []);
 
+  useEffect(() => {
+    // Se o modal estiver aberto, faz uma busca de usuários para selecionar e começar uma dm
+    if (isModalOpen) {
+      const fetchUsers = async () => {
+        try {
+          // Simulando uma chamada de API para buscar usuários
+          const response = await fetch('http://localhost:3001/api/list-users'); // Ajuste a URL conforme necessário
+          if (!response.ok) {
+            throw new Error('Erro ao buscar usuários');
+          }
+          const data = await response.json();
+          setUsers(data.users || []);
+          console.log('Usuários carregados:', data.users);
+        } catch (error) {
+          console.error('Erro ao carregar usuários:', error);
+        }
+      };
+      fetchUsers();
+    }
+  }, [isModalOpen]);
+
   const handleRoomSelect = (room: Room) => {
     setCurrentRoom(room._id, room.name);
+  };
+
+  const handleUserSelect = (user: User) => {
+    // Criar ou entrar em uma sala de DM com o usuário selecionado
+    // O ID da sala de DM geralmente é uma combinação dos IDs dos usuários
+    const dmRoomId = `dm-${user._id}`;
+    setCurrentRoom(dmRoomId, `DM com ${user.name}`);
+    setIsModalOpen(false);
   };
 
   const handleCreateRoom = async () => {
@@ -78,9 +108,9 @@ const RoomList = () => {
         <button
           className="create-room-button bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-all duration-200"
           onClick={() => setIsModalOpen(true)}
-          title="Criar nova sala"
+          title="Nova conversa"
         >
-          + Nova Sala
+          + Nova Conversa
         </button>
       </div>
       <div className="room-list bg-gray-100 p-4 rounded shadow-md">
@@ -112,28 +142,60 @@ const RoomList = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white p-6 rounded shadow-lg min-w-[300px]">
-            <h3 className="text-lg font-semibold mb-4">Criar Nova Sala</h3>
-            <input
-              type="text"
-              placeholder="Nome da sala"
-              value={newRoomName}
-              onChange={(e) => setNewRoomName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateRoom();
-                }
-              }}
-            />
-            <div className="flex gap-2">
+          <div className="bg-white p-6 rounded shadow-lg min-w-[400px] max-h-[500px] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Nova Conversa</h3>
+            
+            {/* Criar nova sala */}
+            <div className="mb-6">
+              <h4 className="text-md font-medium mb-2">Criar Nova Sala</h4>
+              <input
+                type="text"
+                placeholder="Nome da sala"
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreateRoom();
+                  }
+                }}
+              />
               <button
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50 mr-2"
                 onClick={handleCreateRoom}
                 disabled={!newRoomName.trim()}
               >
-                Criar
+                Criar Sala
               </button>
+            </div>
+
+            {/* Selecionar usuário para DM */}
+            <div className="mb-4">
+              <h4 className="text-md font-medium mb-2">Iniciar Mensagem Direta</h4>
+              {users.length > 0 ? (
+                <ul className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {users.map((user) => (
+                    <li 
+                      key={user._id}
+                      className="p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-blue-50 border border-gray-200 hover:border-blue-200"
+                      onClick={() => handleUserSelect(user)}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-800">{user.name}</span>
+                        <span className="text-xs text-gray-600">@{user.username}</span>
+                        <span className={`text-xs ${user.status === 'online' ? 'text-green-600' : 'text-gray-500'}`}>
+                          {user.status === 'online' ? '🟢 Online' : '⚫ Offline'}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 text-sm">Carregando usuários...</p>
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end">
               <button
                 className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
                 onClick={() => {

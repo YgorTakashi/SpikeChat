@@ -311,6 +311,35 @@ app.get('/api/list-rooms', async (req, res) => {
   }
 });
 
+app.get('/api/list-users', async (req, res) => {
+  console.log('Listando usuários...');
+  try {
+    const url = `${ROCKET_CHAT_CONFIG.baseURL}/api/v1/users.list`;
+    const response = await axios.get(url, {
+      headers: ROCKET_CHAT_CONFIG.headers
+    });
+    
+    if (response.data.success) {
+      res.json({
+        success: true,
+        users: response.data.users
+      });
+    }
+    else {
+      res.status(400).json({
+        success: false,
+        error: 'Erro ao listar usuários'
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao listar usuários:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.post('/api/messages', async (req, res) => {
   try {
     const { message, roomId, alias, emoji, avatar, attachments } = req.body;
