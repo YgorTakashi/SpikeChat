@@ -179,7 +179,7 @@
   }
 
   .video-call-container {
-    @apply bg-white rounded-2xl overflow-hidden max-w-4xl w-full max-h-screen shadow-2xl;
+    @apply bg-white rounded-2xl overflow-hidden w-full max-h-screen shadow-2xl;
   }
 
   .video-call-header {
@@ -195,7 +195,7 @@
   }
 
   .jitsi-container {
-    @apply h-96 w-full relative;
+    @apply w-full relative;
   }
 
   .jitsi-container iframe {

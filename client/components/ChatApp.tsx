@@ -507,8 +507,8 @@ const ChatApp: React.FC = () => {
 
           {/* Modal de Chamada de Vídeo */}
           {isVideoCallActive && (
-            <div className="video-call-modal backdrop-blur-sm">
-              <div className="video-call-container shadow-2xl">
+            <div className="video-call-modal w-full backdrop-blur-sm">
+              <div className="video-call-container w-3/4 h-3/4 shadow-2xl">
                 <div className="video-call-header">
                   <h3 className="text-base font-semibold m-0">
                     📹 Chamada de Vídeo - Sala: {meetingRoomName}
@@ -522,10 +522,10 @@ const ChatApp: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="jitsi-container">
+                <div className="jitsi-container h-[93%]">
                   {isMounted && (
                     <JitsiMeeting
-                      domain="meet.jit.si"
+                      domain="localhost:8443" // Use seu domínio Jitsi aqui
                       roomName={meetingRoomName}
                       configOverwrite={{
                         startWithAudioMuted: false,
@@ -536,6 +536,9 @@ const ChatApp: React.FC = () => {
                           'microphone',
                           'camera',
                           'hangup',
+                          'desktop',
+                          'recording',
+                          'livestreaming',
                           'settings',
                           'filmstrip',
                           'invite',
@@ -569,7 +572,7 @@ const ChatApp: React.FC = () => {
                       }}
                       getIFrameRef={(parentNode: HTMLDivElement) => {
                         if (parentNode) {
-                          parentNode.style.height = '400px';
+                          parentNode.style.height = '100%';
                           parentNode.style.width = '100%';
                         }
                       }}
