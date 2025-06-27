@@ -34,6 +34,7 @@ const ChatApp: React.FC = () => {
   // Estados para chamada de vídeo
   const [isVideoCallActive, setIsVideoCallActive] = useState<boolean>(false);
   const [meetingRoomName, setMeetingRoomName] = useState<string>('');
+  const [activeCallInRoom, setActiveCallInRoom] = useState<VideoCallData | null>(null);
 
   // Referências
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -143,9 +144,10 @@ const ChatApp: React.FC = () => {
     // Event listeners para chamadas de vídeo
     newSocket.on('video_call_started', (data: VideoCallData) => {
       console.log('Chamada de vídeo iniciada por outro usuário:', data);
+      setActiveCallInRoom(data);
       const callMessage: Message = {
         id: `call-notification-${Date.now()}`,
-        text: `📹 ${data.username || 'Alguém'} iniciou uma chamada de vídeo. Sala: ${data.meetingRoom}`,
+        text: `📹 ${data.username || 'Alguém'} iniciou uma chamada de vídeo. Clique no botão "Entrar na Chamada" para participar.`,
         user: { name: 'Sistema', username: 'system' },
         timestamp: data.timestamp,
         type: 'video_call_notification',
@@ -155,6 +157,11 @@ const ChatApp: React.FC = () => {
 
     newSocket.on('video_call_ended', (data: VideoCallData) => {
       console.log('Chamada de vídeo encerrada:', data);
+      setActiveCallInRoom(null);
+      if (isVideoCallActive && meetingRoomName === data.meetingRoom) {
+        setIsVideoCallActive(false);
+        setMeetingRoomName('');
+      }
       const endCallMessage: Message = {
         id: `call-end-notification-${Date.now()}`,
         text: `📹 Chamada de vídeo encerrada`,
@@ -220,23 +227,29 @@ const ChatApp: React.FC = () => {
 
   // Funções para controlar chamada de vídeo
   const startVideoCall = (): void => {
-    const roomName = `spikechat-${currentRoomId}-${Date.now()}`;
+    const roomName = `spikechat-room-${currentRoomId}`;
     setMeetingRoomName(roomName);
     setIsVideoCallActive(true);
 
+    // Criar dados da chamada
+    const callData: VideoCallData = {
+      roomId: currentRoomId || '',
+      meetingRoom: roomName,
+      timestamp: new Date().toISOString(),
+      username: `Usuário-${user?.id || 'Anônimo'}`,
+    };
+
+    setActiveCallInRoom(callData);
+
     // Notificar outros usuários sobre a chamada
     if (socket) {
-      socket.emit('video_call_started', {
-        roomId: currentRoomId,
-        meetingRoom: roomName,
-        timestamp: new Date().toISOString(),
-      });
+      socket.emit('video_call_started', callData);
     }
 
     // Adicionar mensagem informativa no chat
     const callMessage: Message = {
       id: `call-${Date.now()}`,
-      text: `📹 Chamada de vídeo iniciada. Sala: ${roomName}`,
+      text: `📹 Você iniciou uma chamada de vídeo.`,
       user: { name: 'Sistema', username: 'system' },
       timestamp: new Date().toISOString(),
       type: 'video_call_start',
@@ -245,14 +258,32 @@ const ChatApp: React.FC = () => {
     setMessages((prev: Message[]) => [...prev, callMessage]);
   };
 
+  const joinVideoCall = (): void => {
+    if (activeCallInRoom) {
+      setMeetingRoomName(activeCallInRoom.meetingRoom);
+      setIsVideoCallActive(true);
+
+      // Adicionar mensagem informativa no chat
+      const joinMessage: Message = {
+        id: `call-join-${Date.now()}`,
+        text: `📹 Você entrou na chamada de vídeo.`,
+        user: { name: 'Sistema', username: 'system' },
+        timestamp: new Date().toISOString(),
+        type: 'video_call_join',
+      };
+
+      setMessages((prev: Message[]) => [...prev, joinMessage]);
+    }
+  };
+
   const endVideoCall = (): void => {
     setIsVideoCallActive(false);
 
     // Notificar outros usuários sobre o fim da chamada
-    if (socket) {
+    if (socket && activeCallInRoom) {
       socket.emit('video_call_ended', {
         roomId: currentRoomId,
-        meetingRoom: meetingRoomName,
+        meetingRoom: activeCallInRoom.meetingRoom,
         timestamp: new Date().toISOString(),
       });
     }
@@ -268,6 +299,7 @@ const ChatApp: React.FC = () => {
 
     setMessages((prev: Message[]) => [...prev, endCallMessage]);
     setMeetingRoomName('');
+    setActiveCallInRoom(null);
   };
 
   // Função para renderizar anexos
@@ -369,18 +401,39 @@ const ChatApp: React.FC = () => {
           <h1 className="text-2xl font-semibold mb-0">💬 SpikeChat</h1>
           <div className="chat-status">
             Sala: {currentRoomName || 'Nenhuma sala selecionada'} • {messages.length} mensagens
+            {activeCallInRoom && !isVideoCallActive && (
+              <span className="ml-2 text-green-600 font-medium">• 📹 Chamada ativa</span>
+            )}
+            {isVideoCallActive && (
+              <span className="ml-2 text-blue-600 font-medium">• 📹 Na chamada</span>
+            )}
           </div>
           {user && <div className="user-info">Bem-vindo</div>}
         </div>
 
         <div className="header-right">
+          {/* Botão para entrar na chamada ativa */}
+          {activeCallInRoom && !isVideoCallActive && (
+            <button
+              className="join-call-button bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg mr-2 transition-all duration-300 hover:scale-105"
+              onClick={joinVideoCall}
+              disabled={!connected || !currentRoomId}
+              title="Entrar na chamada de vídeo ativa"
+            >
+              📹 Entrar na Chamada
+            </button>
+          )}
+          
+          {/* Botão principal de chamada */}
           <button
             className={`video-call-button ${isVideoCallActive ? 'active' : ''} transition-all duration-300 hover:scale-105`}
             onClick={isVideoCallActive ? endVideoCall : startVideoCall}
-            disabled={!connected || !currentRoomId}
+            disabled={!connected || !currentRoomId || (!!activeCallInRoom && !isVideoCallActive)}
             title={
               isVideoCallActive
                 ? 'Encerrar chamada de vídeo'
+                : activeCallInRoom
+                ? 'Já existe uma chamada ativa'
                 : 'Iniciar chamada de vídeo'
             }
           >
@@ -504,9 +557,8 @@ const ChatApp: React.FC = () => {
                         ],
                       }}
                       userInfo={{
-                        displayName:`Usuário-${currentRoomId}`,
-                        email:
-                          `usuario-${currentRoomId}@spikechat.local`,
+                        displayName: `Usuário-${user?.id || 'Anônimo'}`,
+                        email: `usuario-${user?.id || 'anonimo'}@spikechat.local`,
                       }}
                       onApiReady={(externalApi: any) => {
                         console.log('Jitsi API pronta:', externalApi);
